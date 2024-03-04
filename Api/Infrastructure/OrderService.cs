@@ -1,11 +1,50 @@
 ﻿namespace Api.Infrastructure
 {
     using System.Data;
-    using Models;
+    using System.Threading.Tasks;
+    using Api.Infrastructure.Entities;
+    using Api.Infrastructure.Repository;
+    using Api.Interfaces;
+    using Api.Models;
+    using AutoMapper;
 
-    public class OrderService
+    public class OrderService:IOrder
     {
-        public List<Order> GetOrdersForCompany(int CompanyId)
+        private IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
+        public OrderService(IUnitOfWork unitOfWork, IMapper mapper)
+        {
+            _unitOfWork = unitOfWork;
+            _mapper = mapper;
+        }
+
+        public async Task<List<OrderSummary>> GetOrders()
+        {
+            var result = _unitOfWork.GetRepository<Orderproduct>().FindBy((i => 1 == 1), "Order", "Product");
+
+            var tmp = result.ToList().Select(i => new
+            {
+                Id = i.OrderId,
+                OrderName = i.Order.Description,
+                Quantity = i.Quantity,
+                ProductName = i.Product.Name,
+                ProductPrice = i.Product.Price
+            });
+
+            return (from d in (from c in tmp
+                              group c by c.Id)
+                              select new OrderSummary() {
+                                  name = d.FirstOrDefault().OrderName,
+                                  total = d.Where(i=> i.Id == d.Key).Select(k=> k.Quantity * k.ProductPrice).Sum(),
+                                  Products = d.Where(i=> i.Id == d.Key).Select(k=> new ProductViewModel() {
+                                      Price = k.ProductPrice,
+                                      Name = k.ProductName,
+                                      Quantity = k.Quantity
+                                  }).ToList()
+                              }).ToList();
+        }
+        
+        private List<OrderViewModel> GetOrdersForCompany(int CompanyId)
         {
 
             var database = new Database();
@@ -16,18 +55,18 @@
 
             var reader1 = database.ExecuteReader(sql1);
 
-            var values = new List<Order>();
+            var values = new List<OrderViewModel>();
             
             while (reader1.Read())
             {
                 var record1 = (IDataRecord) reader1;
 
-                values.Add(new Order()
+                values.Add(new OrderViewModel()
                 {
                     CompanyName = record1.GetString(0),
                     Description = record1.GetString(1),
                     OrderId = record1.GetInt32(2),
-                    OrderProducts = new List<OrderProduct>()
+                    OrderProducts = new List<OrderProductViewModel>()
                 });
 
             }
@@ -40,19 +79,19 @@
 
             var reader2 = database.ExecuteReader(sql2);
 
-            var values2 = new List<OrderProduct>();
+            var values2 = new List<OrderProductViewModel>();
 
             while (reader2.Read())
             {
                 var record2 = (IDataRecord)reader2;
 
-                values2.Add(new OrderProduct()
+                values2.Add(new OrderProductViewModel()
                 {
                     OrderId = record2.GetInt32(1),
                     ProductId = record2.GetInt32(2),
                     Price = record2.GetDecimal(0),
                     Quantity = record2.GetInt32(3),
-                    Product = new Product()
+                    Product = new ProductViewModel()
                     {
                         Name = record2.GetString(4),
                         Price = record2.GetDecimal(5)

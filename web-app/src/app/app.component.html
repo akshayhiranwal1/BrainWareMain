@@ -11,10 +11,10 @@
   </div>
   <ul>
     <li *ngFor="let order of orders">
-      {{order.dscription}} (Total: ${{order.orderTotal}})
+      {{order.name}} (Total: ${{order.total}})
       <ul>
-        <li *ngFor="let orderProduct of order.orderProducts">
-          {{orderProduct.product.name}} ({{orderProduct.quantity}} &#64; ${{orderProduct.price}}/ea)
+        <li *ngFor="let orderProduct of order.products">
+          {{orderProduct.name}} ({{orderProduct.quantity}} &#64; ${{orderProduct.price}}/ea)
         </li>
       </ul>
     </li>

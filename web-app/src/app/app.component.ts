@@ -15,7 +15,8 @@ export class AppComponent {
   year = new Date().getFullYear();
 
   constructor(http: HttpClient) {
-    http.get<any>('/api/order/1').subscribe((orders) => {
+    http.get<any>('/api/orders').subscribe((orders) => {
+      debugger;
       this.orders = orders;
     });
   }
